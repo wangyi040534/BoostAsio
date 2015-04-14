@@ -1,47 +1,18 @@
 #include <iostream>
 #include <boost/asio.hpp>
- 
-int main()
-{
-  try
-  {
-	boost::asio::io_service io_service;
-	tcp_server server(io_service);
-	io_service.run();
-  }
-  catch (std::exception& e)
-  {
-	std::cerr << e.what() << std::endl;
-  }
-}
+#include <ctime>
+#include <string>
+#include <boost/bind.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/enable_shared_from_this.hpp>
 
-class tcp_server
-{
-  public:
-  tcp_server(boost::asio::io_service& io_service)
-    :acceptor_(io_service, tcp::endpoint(tcp::v4(), 13))
-	{
-	  start_accept();
-	}
-  private:
-  void start_accept()
-  {
-	tcp_connection::pointer new_connection = 
-	  tcp_connection::create(acceptor_.get_io_service());
+using boost::asio::ip::tcp;
 
-	acceptor_.async_accept(new_connection->socket(),
-	  boost::bind(&tcp_server::handle_accept, this,
-	  new_connection, boost::asio::placeholders::error));
-  }
-  void handle_accept(tcp_connection::pointer new_connection,
-        const boost::system::error_code& error)
-  {
-	if (!error)
-	{
-	  new_connection->start();
-	}
-	start_accept();
-  }
+std::string make_daytime_string()
+{
+  using namespace std;
+  time_t now = time(0);
+  return ctime(&now);
 }
 
 class tcp_connection
@@ -76,4 +47,48 @@ class tcp_connection
 	}
 	tcp::socket socket_;
 	std::string message_;
+};
+
+class tcp_server
+{
+  public:
+  tcp_server(boost::asio::io_service& io_service)
+    :acceptor_(io_service, tcp::endpoint(tcp::v4(), 13))
+	{
+	  start_accept();
+	}
+  private:
+  void start_accept()
+  {
+	tcp_connection::pointer new_connection = 
+	  tcp_connection::create(acceptor_.get_io_service());
+
+	acceptor_.async_accept(new_connection->socket(),
+	  boost::bind(&tcp_server::handle_accept, this,
+	  new_connection, boost::asio::placeholders::error));
+  }
+  void handle_accept(tcp_connection::pointer new_connection,
+        const boost::system::error_code& error)
+  {
+	if (!error)
+	{
+	  new_connection->start();
+	}
+	start_accept();
+  }
+};
+
+int main()
+{
+  try
+  {
+	boost::asio::io_service io_service;
+	tcp_server server(io_service);
+	io_service.run();
+  }
+  catch (std::exception& e)
+  {
+	std::cerr << e.what() << std::endl;
+  }
 }
+

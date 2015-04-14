@@ -56,8 +56,8 @@ int main()
 {
 	boost::asio::io_service io;
 	printer p(io);
-	boost::thread t(boost::bind(&boost::asio::io_service::run, &io));
+	//boost::thread t(boost::bind(&boost::asio::io_service::run, &io));
     io.run();
-	t.join();
+	//t.join();
 	return 0;
 }
